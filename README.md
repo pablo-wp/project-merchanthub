@@ -106,3 +106,4 @@ Import `postman/Task_4.4_BI_Reporting.postman_collection.json` into Postman.
 **Base URL variable:** `https://quality-engineering-labs.vercel.app`
 
 Each request includes pre-built test scripts validating status codes, response schemas, and business logic (sort order, percentage totals, enum values, etc.).
+# project-merchanthub
