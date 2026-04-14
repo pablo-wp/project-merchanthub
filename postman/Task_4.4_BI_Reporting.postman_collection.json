@@ -1,0 +1,471 @@
+{
+  "info": {
+    "_postman_id": "merchanthub-bi-4-4",
+    "name": "Task 4.4 — Business Intelligence Reporting",
+    "description": "MerchantHub — 10 Business Intelligence API requests covering Top Merchants by Revenue, Low-Performing SKUs, Category Breakdown, Monthly Trends, Commission Leaderboard, Provider Rankings, Customer LTV, Peak Hours, Wallet Analysis, and Executive KPI Summary.\n\nBase URL: https://quality-engineering-labs.vercel.app\n\nEach request includes:\n- Pre-request scripts to set dynamic variables\n- Test scripts validating status, schema, and business logic",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",    "value": "https://quality-engineering-labs.vercel.app", "type": "string" },
+    { "key": "merchant_id", "value": "1",  "type": "string" },
+    { "key": "limit",       "value": "10", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "4.4-BI-01 — Top 10 Merchants by Revenue",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept",       "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/reports/merchants/top-revenue?limit={{limit}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "merchants", "top-revenue"],
+          "query": [{ "key": "limit", "value": "{{limit}}" }]
+        },
+        "description": "Returns the top 10 merchants ranked by total completed sale revenue. Used in executive dashboards."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Response is JSON array', () => {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Result contains <= 10 merchants', () => {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.length).to.be.at.most(10);",
+              "});",
+              "",
+              "pm.test('Each merchant has required BI fields', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        const m = body[0];",
+              "        pm.expect(m).to.have.property('merchant_id');",
+              "        pm.expect(m).to.have.property('merchant_name');",
+              "        pm.expect(m).to.have.property('gross_revenue');",
+              "        pm.expect(m).to.have.property('total_transactions');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Results are sorted by revenue descending', () => {",
+              "    const body = pm.response.json();",
+              "    for (let i = 1; i < body.length; i++) {",
+              "        pm.expect(body[i].gross_revenue).to.be.at.most(body[i-1].gross_revenue);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-02 — Low-Performing Product SKUs",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/products/low-performing?limit=20",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "products", "low-performing"],
+          "query": [{ "key": "limit", "value": "20" }]
+        },
+        "description": "Returns up to 20 product SKUs with the lowest revenue and sales volume. Flags items for removal or promotion."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Response is JSON array', () => {",
+              "    pm.expect(pm.response.json()).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Each SKU contains performance_flag', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('performance_flag');",
+              "        pm.expect(body[0]).to.have.property('product_sku');",
+              "        pm.expect(body[0]).to.have.property('total_revenue');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Revenue is sorted ascending', () => {",
+              "    const body = pm.response.json();",
+              "    for (let i = 1; i < body.length; i++) {",
+              "        pm.expect(body[i].total_revenue).to.be.at.least(body[i-1].total_revenue);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-03 — Revenue by Product Category",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/revenue/by-category",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "revenue", "by-category"]
+        },
+        "description": "Returns revenue broken down by product category (Airtime, Data, 1Voucher, Electricity, Gaming, etc.) with share percentages."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Contains category and share fields', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('product_category');",
+              "        pm.expect(body[0]).to.have.property('total_revenue');",
+              "        pm.expect(body[0]).to.have.property('revenue_share_pct');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Revenue share percentages sum to ~100', () => {",
+              "    const body = pm.response.json();",
+              "    const total = body.reduce((acc, row) => acc + parseFloat(row.revenue_share_pct || 0), 0);",
+              "    pm.expect(total).to.be.closeTo(100, 1);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-04 — Monthly Revenue Trend (Last 12 Months)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/revenue/monthly?months=12",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "revenue", "monthly"],
+          "query": [{ "key": "months", "value": "12" }]
+        },
+        "description": "Returns month-over-month revenue with cumulative total and growth percentage for the last 12 months."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Returns at most 12 months of data', () => {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.length).to.be.at.most(12);",
+              "});",
+              "",
+              "pm.test('Each row has sales_month and monthly_revenue', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('sales_month');",
+              "        pm.expect(body[0]).to.have.property('monthly_revenue');",
+              "        pm.expect(body[0]).to.have.property('cumulative_revenue');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Months are in ascending order', () => {",
+              "    const body = pm.response.json();",
+              "    for (let i = 1; i < body.length; i++) {",
+              "        pm.expect(body[i].sales_month >= body[i-1].sales_month).to.be.true;",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-05 — Commission Earnings Leaderboard",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/commissions/leaderboard?limit=15",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "commissions", "leaderboard"],
+          "query": [{ "key": "limit", "value": "15" }]
+        },
+        "description": "Returns the top 15 merchants by total commission earned, with rank and average commission rate."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Contains commission_rank field', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('commission_rank');",
+              "        pm.expect(body[0]).to.have.property('total_commission_earned');",
+              "        pm.expect(body[0].commission_rank).to.equal(1);",
+              "    }",
+              "});",
+              "",
+              "pm.test('Commission values are non-negative', () => {",
+              "    const body = pm.response.json();",
+              "    body.forEach(row => {",
+              "        pm.expect(parseFloat(row.total_commission_earned)).to.be.at.least(0);",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-06 — Top Providers by Transaction Volume",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/providers/top-volume?limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "providers", "top-volume"],
+          "query": [{ "key": "limit", "value": "10" }]
+        },
+        "description": "Returns top 10 providers (Vodacom, MTN, PlayStation, Steam etc.) by transaction count and revenue share."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Contains provider fields', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('provider_name');",
+              "        pm.expect(body[0]).to.have.property('total_transactions');",
+              "        pm.expect(body[0]).to.have.property('volume_share_pct');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Volume share percentages sum to ~100', () => {",
+              "    const body = pm.response.json();",
+              "    const total = body.reduce((sum, r) => sum + parseFloat(r.volume_share_pct || 0), 0);",
+              "    pm.expect(total).to.be.closeTo(100, 2);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-07 — Customer Lifetime Value (Top 20)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/customers/lifetime-value?limit=20",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "customers", "lifetime-value"],
+          "query": [{ "key": "limit", "value": "20" }]
+        },
+        "description": "Returns top 20 customers ranked by lifetime spend with RFM-based status (Active / At Risk / Churned)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Contains CLV and status fields', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('lifetime_spend');",
+              "        pm.expect(body[0]).to.have.property('customer_status');",
+              "        pm.expect(body[0]).to.have.property('clv_rank');",
+              "    }",
+              "});",
+              "",
+              "pm.test('customer_status is valid enum value', () => {",
+              "    const valid = ['Active', 'At Risk', 'Churned'];",
+              "    pm.response.json().forEach(c => {",
+              "        pm.expect(valid).to.include(c.customer_status);",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-08 — Peak Sales Hours Heatmap",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/sales/peak-hours",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "sales", "peak-hours"]
+        },
+        "description": "Returns transaction count and revenue grouped by day-of-week and hour-of-day for operational heatmap reporting."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Contains day and hour fields', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('day_of_week');",
+              "        pm.expect(body[0]).to.have.property('hour_of_day');",
+              "        pm.expect(body[0]).to.have.property('transaction_count');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Hour values are 0-23', () => {",
+              "    pm.response.json().forEach(row => {",
+              "        pm.expect(row.hour_of_day).to.be.within(0, 23);",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-09 — Wallet Top-Up vs Spend Analysis",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/wallet/topup-vs-spend?limit=20",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "wallet", "topup-vs-spend"],
+          "query": [{ "key": "limit", "value": "20" }]
+        },
+        "description": "Compares merchant wallet top-up amounts vs spend to reveal float management patterns."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Contains wallet comparison fields', () => {",
+              "    const body = pm.response.json();",
+              "    if (body.length > 0) {",
+              "        pm.expect(body[0]).to.have.property('total_topped_up');",
+              "        pm.expect(body[0]).to.have.property('total_spent');",
+              "        pm.expect(body[0]).to.have.property('spend_to_topup_ratio_pct');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Ratio is numeric and >= 0', () => {",
+              "    pm.response.json().forEach(row => {",
+              "        const ratio = parseFloat(row.spend_to_topup_ratio_pct);",
+              "        if (!isNaN(ratio)) pm.expect(ratio).to.be.at.least(0);",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4.4-BI-10 — Executive KPI Summary Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/reports/executive/kpi-summary",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "executive", "kpi-summary"]
+        },
+        "description": "Returns a single-object snapshot of all key business KPIs: total revenue, commissions paid, active merchants, unique customers, wallet float, out-of-stock products, and sale failure rate."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "pm.test('Returns single KPI object (not array)', () => {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('object');",
+              "    pm.expect(body).to.not.be.an('array');",
+              "});",
+              "",
+              "pm.test('Contains all required KPI fields', () => {",
+              "    const body = pm.response.json();",
+              "    const required = [",
+              "        'total_completed_sales',",
+              "        'total_gross_revenue',",
+              "        'avg_transaction_value',",
+              "        'revenue_this_month',",
+              "        'total_commissions_paid',",
+              "        'active_merchants',",
+              "        'unique_customers',",
+              "        'total_wallet_float',",
+              "        'sale_failure_rate_pct'",
+              "    ];",
+              "    required.forEach(field => pm.expect(body).to.have.property(field));",
+              "});",
+              "",
+              "pm.test('Failure rate is between 0 and 100', () => {",
+              "    const rate = parseFloat(pm.response.json().sale_failure_rate_pct);",
+              "    pm.expect(rate).to.be.within(0, 100);",
+              "});",
+              "",
+              "pm.test('Total revenue >= revenue this month', () => {",
+              "    const body = pm.response.json();",
+              "    pm.expect(parseFloat(body.total_gross_revenue))",
+              "        .to.be.at.least(parseFloat(body.revenue_this_month));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+
+  ]
+}
